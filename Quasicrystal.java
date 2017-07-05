@@ -1,6 +1,5 @@
 // To run this code type the following in the terminal
-// javac Quasicrystal.java 
-// java Quasicrystal
+// javac Quasicrystal.java && java Quasicrystal
 // (c) m.rule 2011
 // http://wealoneonearth.blogspot.co.uk/2010/03/quasicrystal.html
 
