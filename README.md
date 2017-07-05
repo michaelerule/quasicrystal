@@ -7,5 +7,5 @@ These code snippets follow [a series of quasicrystal blog posts](http://wealoneo
 
 (c) 2011, 2017 m. rule
 
-.. image:: 5foldeg.png
-   :align: center
+
+![5-fold quasicrystal example](/5foldeg.png?raw=true "5-fold quasicrystal example")
