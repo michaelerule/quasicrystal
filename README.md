@@ -3,7 +3,6 @@ Quasicrystal
 
 Small Java code examples and outputs for rendering quasicrystal patterns. 
 
-![5-fold quasicrystal example](/5foldeg.png?raw=true "5-fold quasicrystal example")
 (c) 2011, 2017 M. Rule; 
 [![DOI](https://zenodo.org/badge/96306181.svg)](https://zenodo.org/badge/latestdoi/96306181)
 
@@ -23,7 +22,7 @@ BibTeX entry
     }
 
 
-
+<div style="text-align:center"><img src ="/5foldeg.png?raw=true" /></div>
 
 
 
