@@ -14,7 +14,7 @@ BibTeX entry
     @misc{Rule2011,
       author = {Rule, M.E.},
       title = {Quasicrystal},
-      year = {2017},
+      year = {2011},
       publisher = {GitHub},
       journal = {GitHub repository},
       howpublished = {\url{https://github.com/michaelerule/quasicrystal}},
