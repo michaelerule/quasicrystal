@@ -17,7 +17,7 @@
      public static void main(String [] args) throws IOException {  
          boolean show = false; // whether to display image in a window  
          int k=5;              // numer of plane waves    
-         int stripes = 72;     // number of stripes per wave    
+         int stripes = 47;     // number of stripes per wave    
          int N = 800;          // image size in pixels
          double phase = 0.0;   // phase shift for the crystal   
          String cmap;
