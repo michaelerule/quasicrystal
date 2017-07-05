@@ -9,6 +9,8 @@ Small Java code examples and outputs for rendering quasicrystal patterns.
 
 In response to several inquiries for permission to reproduce some 2D quasicrystal renderings, I have placed example images and code snippits in this repository in order to provide a citeable archive. The code snippets follow [a series of quasicrystal blog posts](http://wealoneonearth.blogspot.co.uk/search/label/quasicrystal). See also [here](http://spacecollective.org/michaelerule/5810/Quasicrystal-Diffraction-Patterns). The code is  trivial, and may be used as inspiration for re-writing similar routines with optional attribution; this project can be cited for reproducing the associated images for non-commercial or academic use. [This work](http://mainisusuallyafunction.blogspot.co.uk/2011/10/quasicrystals-as-sums-of-waves-in-plane.html) by Keegan McAllester is related and may also be of interest.
 
+Citation
+
     Rule, M. E. (2011). Quasicrystal. GitHub Repository. GitHub. https://doi.org/10.5281/zenodo.823112
 
 BibTeX entry
