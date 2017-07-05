@@ -22,7 +22,7 @@ BibTeX entry
     }
 
 
-<div style="text-align:center"><img src ="/5foldeg.png?raw=true" /></div>
+<div style="text-align:center;width=100%;"><img src ="/5foldeg.png?raw=true" /></div>
 
 
 
