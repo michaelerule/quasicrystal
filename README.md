@@ -7,5 +7,5 @@ These code snippets follow [a series of quasicrystal blog posts](http://wealoneo
 
 (c) 2011, 2017 m. rule
 
-.. image:: outputs/5foldeg.png
+.. image:: ./outputs/5foldeg.png
    :align: center
