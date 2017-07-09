@@ -7,6 +7,7 @@
 *.o
 *.so
 
+
 # Packages #
 ############
 # it's better to unpack these files and commit the raw source
@@ -35,3 +36,4 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
+*~
