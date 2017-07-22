@@ -37,3 +37,13 @@
 ehthumbs.db
 Thumbs.db
 *~
+
+# Latex temp files #
+####################
+
+*.synctex.gz
+*.aux
+*.bbl
+*.blg
+*.log
+
