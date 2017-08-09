@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+for i in "$@"
+{
+	echo $i
+	xx=${i%.*}
+	echo $xx
+	convert $i -resize "500x500^" -gravity center -crop 500x500+0+0 +repage ${xx}_500.png
+}
+done
+
+

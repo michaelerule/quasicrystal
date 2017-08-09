@@ -1,0 +1,4 @@
+#! /bin/bash -peux
+# https://stackoverflow.com/questions/630405/converting-xcf-and-other-files-using-command-line-with-gimp
+# ls *.xcf|xargs -l xcftopng
+exec xcf2png $1 -o ${1%.xcf}.png

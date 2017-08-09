@@ -1,0 +1,20 @@
+#!/bin/bash
+{
+cat <<EOF
+(define (awesomeize filename savename)
+  (let* (
+    (image    (car (gimp-file-load RUN-NONINTERACTIVE filename filename)))
+    (drawable (car (gimp-image-get-active-layer image))) )
+  (gimp-levels-stretch drawable)
+  (file-png-save       RUN-NONINTERACTIVE image drawable savename savename 0 6 0 0 0 1 1)
+  (gimp-image-delete image)
+))
+(gimp-message-set-handler 1)
+EOF
+
+for i in "$@"; do
+  echo "(gimp-message \"$i\")"
+  echo "(styleize \"$i\" \"${i%%.png}_whitebalanced.png\")"
+done
+echo "(gimp-quit 0)"
+} | gimp -i -b -

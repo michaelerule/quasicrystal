@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+for i in $( ls *.jpg *.png); do convert -resize 20% $i re_$i; done
