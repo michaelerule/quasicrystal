@@ -1,0 +1,149 @@
+#!/usr/bin/env jython
+# Experimental drawing utility for compass designs
+
+from java.awt       import Color,BorderLayout,FlowLayout,Cursor,GridBagConstraints,GridBagLayout,Toolkit,Point,Robot
+from java.awt.event import MouseAdapter, MouseListener, MouseMotionListener, ComponentAdapter
+from java.awt.image import BufferedImage
+from java.awt.Color import BLACK,WHITE,YELLOW,RED
+from java.awt.geom  import Line2D,Ellipse2D
+from time           import sleep,clock
+from cmath          import *
+from math           import atan2
+from jarray         import array,zeros
+from threading      import Thread
+from java.lang      import System
+from javax.imageio  import ImageIO
+from java.io        import File
+import random
+
+from javax.swing import *
+from java.awt import *
+from java.awt.geom import *
+from java.awt.event import *
+from javax.swing.event import *
+
+from java.lang import *
+
+import Halo
+
+NRINGS = 3
+NRAYS = 5
+RADIUS = 50
+
+drawingHalo = False
+newhalo = None
+
+SCREENSIZE = 1000
+
+halo1   = Halo(RADIUS,NRINGS,NRAYS,0,SCREENSIZE/2,SCREENSIZE/2);
+halo2   = Halo(RADIUS,NRINGS,NRAYS,Math.PI/NRAYS,SCREENSIZE/2,SCREENSIZE/2);
+halos  = [halo1,halo2]
+
+def allPoints():
+    return set(list([(int(p.x+0.5),int(p.y+0.5)) for h in halos for p in h.points()]))
+
+def cleanHalos():
+    unique = set([(h.x,h.y,h.theta) for h in halos])
+    clean  = [Halo(RADIUS,NRINGS,NRAYS,h,x,y) for (x,y,h) in unique]
+    return clean
+    
+points = allPoints()
+
+nearby = None
+class Lattice(JPanel):
+    def paint(self,g):
+        g.color = Color.WHITE
+        g.fillRect(0,0,self.width,self.height);
+        g2 = g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                            RenderingHints.VALUE_ANTIALIAS_ON);
+        for h in halos:
+            h.foreground = Color(0,0,0,0.0125);
+            h.draw(g2);
+        if newhalo:
+            newhalo.draw(g2);
+        if nearby:
+            g.color=Color(1,0,0)
+            x,y = nearby
+            g.fill(Ellipse2D.Float(x-5,y-5,10,10));
+
+jf = JFrame("Loops")
+jp = JPanel(BorderLayout())
+l  = Lattice()
+jf.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
+jf.contentPane = jp
+jp.preferredSize = Dimension(SCREENSIZE,SCREENSIZE)
+jp.add(l,BorderLayout.CENTER);
+jf.pack();
+jf.show();
+
+
+class mouse(MouseAdapter):
+    def mouseMoved(self,e):
+        global nearby
+        dd = 200
+        found = None
+        for (x,y) in points:
+            dx = x-e.x
+            dy = y-e.y
+            d = dx*dx+dy*dy;
+            if d<dd:
+                found = (x,y)
+        nearby=found
+        l.repaint()
+    def mouseDragged(self,e):
+        global nearby, points, halos, drawingHalo, newhalo
+        if not drawingHalo: return
+        x,y = newhalo.x,newhalo.y
+        dx = e.x-x;
+        dy = e.y-y;
+        h = Math.atan2(dy,dx);
+        h = Math.round(h*NRAYS/Math.PI)*(Math.PI/NRAYS)
+        r = Math.hypot(dx,dy);
+        newhalo.theta = h;
+        l.repaint()
+        print(e,h)
+    def mouseReleased(self,e):
+        global nearby, points, halos, drawingHalo, newhalo
+        if drawingHalo:
+            newhalo.foreground = Color(0,0,0,0.05);
+            halos += [newhalo]
+            halos = cleanHalos()
+            points = allPoints()
+            l.repaint()
+        newhalo = None
+        drawingHalo = False
+    def mousePressed(self,e):
+        global nearby, points, halos, drawingHalo, newhalo
+        if nearby:
+            x,y = nearby
+            newhalo = Halo(RADIUS,NRINGS,NRAYS,THETA,x,y);
+            newhalo.foreground = Color(0,1,1);
+            l.repaint()
+            drawingHalo = True
+    def mouseClicked(self,e):
+        global nearby, points, halos, drawingHalo, newhalo
+        if nearby:
+            x,y = nearby
+            newhalo = Halo(RADIUS,NRINGS,NRAYS,THETA,x,y);
+            halos += [newhalo]
+            halos = cleanHalos()
+            points = allPoints()
+            l.repaint()
+        newhalo = None
+        drawingHalo = False
+        
+l.addMouseListener(mouse());
+l.addMouseMotionListener(mouse());
+
+for i in range(3):
+    halos = cleanHalos()
+    points = allPoints()
+    newhalos = []#list(halos)
+    for x,y in points:
+        newhalos += [Halo(RADIUS,NRINGS,NRAYS,0,x,y)]
+        newhalos += [Halo(RADIUS,NRINGS,NRAYS,Math.PI/NRAYS,x,y)]
+    halos = newhalos
+    halos = cleanHalos()
+    l.repaint()
+
