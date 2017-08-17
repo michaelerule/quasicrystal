@@ -1,0 +1,172 @@
+#!/usr/bin/env jython
+# Experimental drawing utility for compass designs
+
+from java.awt       import Color,BorderLayout,FlowLayout,Cursor,GridBagConstraints,GridBagLayout,Toolkit,Point,Robot
+from java.awt.event import MouseAdapter, MouseListener, MouseMotionListener, ComponentAdapter
+from java.awt.image import BufferedImage
+from java.awt.Color import BLACK,WHITE,YELLOW,RED
+from java.awt.geom  import Line2D,Ellipse2D
+from time           import sleep,clock
+from cmath          import *
+from math           import atan2
+from jarray         import array,zeros
+from threading      import Thread
+from java.lang      import System
+from javax.imageio  import ImageIO
+from java.io        import File
+import random
+from javax.swing import *
+from java.awt import *
+from java.awt.geom import *
+from java.awt.event import *
+from javax.swing.event import *
+from java.lang import *
+
+
+NRINGS = 1
+NRAYS = 7
+RADIUS = 25
+ANCHOR = 5
+drawingHalo = False
+newhalo = None
+SCREENSIZE = 800
+THETA =0
+minrsquared = 8*8
+
+center = (1+1j)*(SCREENSIZE//2)
+#perimeter = [center + RADIUS*exp(sqrt(2)*1j+1j*pi*i/NRAYS)*(i%2) for i in range(NRAYS*2)]
+perimeter = [center + RADIUS*exp(sqrt(2)*1j+1j*pi*i/NRAYS)*(i%2) for i in range(NRAYS*2)]
+pids = range(NRAYS*2)
+print(perimeter)
+
+image = BufferedImage(SCREENSIZE,SCREENSIZE,BufferedImage.TYPE_INT_RGB)
+GQ = image.createGraphics()
+GQ.color = Color.WHITE
+GQ.fillRect(0,0,SCREENSIZE,SCREENSIZE)
+
+nearby = None
+class Lattice(JPanel):
+    def paint(self,g):
+        g.drawImage(image,0,0,SCREENSIZE,SCREENSIZE,None)        
+jf = JFrame("Loops")
+jp = JPanel(BorderLayout())
+l  = Lattice()
+jf.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
+jf.contentPane = jp
+jp.preferredSize = Dimension(SCREENSIZE,SCREENSIZE)
+jp.add(l,BorderLayout.CENTER);
+jf.pack();
+jf.show();
+
+colors = [Color.RED,Color.MAGENTA,Color.BLUE,Color.CYAN,Color.GREEN,Color.YELLOW,Color.BLACK]
+
+def drawPerim():
+    global perimeter, GQ
+    GQ.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                       RenderingHints.VALUE_ANTIALIAS_ON);
+    GQ.color = Color(1,1,1,0.125)
+    GQ.fillRect(0,0,SCREENSIZE,SCREENSIZE)
+    GQ.color = Color(0,0,0)
+    NP = len(perimeter)
+    for i in range(NP):
+        w=perimeter[i]
+        z=perimeter[(i+1)%NP]
+        GQ.draw(Line2D.Float(z.real,z.imag,w.real,w.imag))
+
+    for i in [0,1,2,3,-4,-3,-2,-1]:
+        z = perimeter[i]
+        GQ.color=colors[i%len(colors)]
+        GQ.fill(Ellipse2D.Float(z.real-5,z.imag-5,10,10))
+
+    l.repaint()
+
+def angle(z):
+    return atan2(z.imag,z.real)
+
+drawPerim()
+for i in range(11):
+    newperimeter = []
+    id = 0
+    ids = []
+    previous = None
+    NP = len(perimeter)
+    added = False
+    for i in range(NP):
+        a = perimeter[(i-2+NP)%NP]
+        u = perimeter[(i-1+NP)%NP]
+        v = perimeter[(i+0+NP)%NP]
+        w = perimeter[(i+1+NP)%NP]
+        b = perimeter[(i+2+NP)%NP]
+
+        au = u-a
+        uv = u-v
+        wv = w-v
+        bw = w-b
+
+        theta = (angle(wv) - angle(uv) + 4*pi)%(2*pi)
+        #print theta
+        if abs(theta%(2*pi))<1e-9: continue
+        if theta<=0.0 or theta>pi: 
+            newperimeter += [v]
+            continue
+        
+        if (abs(au-wv)<1e-3) and (abs(bw-uv)<1e-3) and (\
+            pids[(i-2+NP)%NP]==pids[(i-1+NP)%NP] or\
+            pids[(i+2+NP)%NP]==pids[(i+1+NP)%NP] )\
+            :
+            # Special case here, forbid repeated tiling
+            avg = uv+wv
+            delta = avg*RADIUS/abs(avg)
+            p1 = u + delta
+            p2 = v + delta
+            p3 = w + delta
+            newperimeter += [u,p1,p2,v,p2,p3,w]
+            ids += [id]*7
+            id += 1
+        
+        else:
+            added = True
+            p = u+(w-v)
+            newperimeter += [u,p,w]
+            ids += [id]*3
+            id  += 1
+            previous = w
+
+
+    if not added:#len(newperimeter)==0:
+        newperimeter = []
+        id = 0
+        # We need to do something convex and drastic
+        for i in range(0,NP,2):
+            u = perimeter[(i-1+NP)%NP]
+            v = perimeter[(i+0+NP)%NP]
+            w = perimeter[(i+1+NP)%NP]
+            uv = u-v
+            wv = w-v
+            avg = (uv+wv)
+            delta = -avg*RADIUS/abs(avg)
+
+            p1 = u + delta
+            p2 = v + delta
+            p3 = w + delta
+
+            newperimeter += [u,p1,p2,v,p2,p3,w]
+            ids += [id]*7
+            id += 1
+
+    newnewperimeter = []
+    newids = []
+    previous = newperimeter[-1]
+    for i,(p,id) in enumerate(zip(newperimeter,ids)):
+        if abs(p-previous)>1e-1:
+            previous=p
+            newnewperimeter.append(p)
+            newids.append(id)
+
+    if abs(perimeter[-1]-perimeter[0])>RADIUS*1.5:
+        print "warning, perimeter ends do not meet?"
+
+    perimeter = newnewperimeter
+    pids = newids
+
+    drawPerim()

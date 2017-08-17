@@ -26,21 +26,22 @@ from java.lang import *
 
 import Halo
 
-NRINGS = 3
-NRAYS = 5
-RADIUS = 50
-
+NRINGS = 1
+NRAYS = 11
+RADIUS = 25
+ANCHOR = 5
 drawingHalo = False
 newhalo = None
-
-SCREENSIZE = 1000
+SCREENSIZE = 800
+THETA =0
+minrsquared = 8*8
 
 halo1   = Halo(RADIUS,NRINGS,NRAYS,0,SCREENSIZE/2,SCREENSIZE/2);
 halo2   = Halo(RADIUS,NRINGS,NRAYS,Math.PI/NRAYS,SCREENSIZE/2,SCREENSIZE/2);
-halos  = [halo1,halo2]
+halos  = [halo1]#,halo2]
 
 def allPoints():
-    return set(list([(int(p.x+0.5),int(p.y+0.5)) for h in halos for p in h.points()]))
+    return set(list([(p.x,p.y) for h in halos for p in h.points()]))
 
 def cleanHalos():
     unique = set([(h.x,h.y,h.theta) for h in halos])
@@ -58,7 +59,7 @@ class Lattice(JPanel):
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                             RenderingHints.VALUE_ANTIALIAS_ON);
         for h in halos:
-            h.foreground = Color(0,0,0,0.0125);
+            h.foreground = Color(0,0,0,0.25);
             h.draw(g2);
         if newhalo:
             newhalo.draw(g2);
@@ -81,7 +82,7 @@ jf.show();
 class mouse(MouseAdapter):
     def mouseMoved(self,e):
         global nearby
-        dd = 200
+        dd = minrsquared
         found = None
         for (x,y) in points:
             dx = x-e.x
@@ -92,21 +93,27 @@ class mouse(MouseAdapter):
         nearby=found
         l.repaint()
     def mouseDragged(self,e):
-        global nearby, points, halos, drawingHalo, newhalo
+        global nearby, points, halos, drawingHalo, newhalo, anchord
         if not drawingHalo: return
-        x,y = newhalo.x,newhalo.y
+        #x,y = newhalo.x,newhalo.y
+        x,y = nearby
         dx = e.x-x;
         dy = e.y-y;
-        h = Math.atan2(dy,dx);
+        h = Math.atan2(dx,dy);
         h = Math.round(h*NRAYS/Math.PI)*(Math.PI/NRAYS)
         r = Math.hypot(dx,dy);
         newhalo.theta = h;
+        ch = cos(h)
+        sh = sin(h)
+        ax,ay = anchord
+        newhalo.x = (x + ch*ax + sh*ay).real
+        newhalo.y = (y + ch*ay - sh*ax).real
         l.repaint()
         print(e,h)
     def mouseReleased(self,e):
         global nearby, points, halos, drawingHalo, newhalo
         if drawingHalo:
-            newhalo.foreground = Color(0,0,0,0.05);
+            newhalo.foreground = Color(0,0,0,0.5);
             halos += [newhalo]
             halos = cleanHalos()
             points = allPoints()
@@ -114,11 +121,17 @@ class mouse(MouseAdapter):
         newhalo = None
         drawingHalo = False
     def mousePressed(self,e):
-        global nearby, points, halos, drawingHalo, newhalo
+        global nearby, points, halos, drawingHalo, newhalo, anchord
         if nearby:
             x,y = nearby
             newhalo = Halo(RADIUS,NRINGS,NRAYS,THETA,x,y);
             newhalo.foreground = Color(0,1,1);
+            anchor = newhalo.points()[ANCHOR]
+            dx = x-anchor.x
+            dy = y-anchor.y
+            anchord = dx,dy
+            newhalo.x += dx
+            newhalo.y += dy
             l.repaint()
             drawingHalo = True
     def mouseClicked(self,e):
@@ -136,10 +149,10 @@ class mouse(MouseAdapter):
 l.addMouseListener(mouse());
 l.addMouseMotionListener(mouse());
 
-for i in range(1):
+for i in range(0):
     halos = cleanHalos()
     points = allPoints()
-    newhalos = []#list(halos)
+    newhalos = list(halos)
     for x,y in points:
         newhalos += [Halo(RADIUS,NRINGS,NRAYS,0,x,y)]
         newhalos += [Halo(RADIUS,NRINGS,NRAYS,Math.PI/NRAYS,x,y)]

@@ -1,0 +1,256 @@
+#!/usr/bin/env jython
+# Experimental drawing utility for compass designs
+
+from java.awt       import Color,BorderLayout,FlowLayout,Cursor,GridBagConstraints,GridBagLayout,Toolkit,Point,Robot
+from java.awt.event import MouseAdapter, MouseListener, MouseMotionListener, ComponentAdapter
+from java.awt.image import BufferedImage
+from java.awt.Color import BLACK,WHITE,YELLOW,RED
+from java.awt.geom  import Line2D,Ellipse2D
+from time           import sleep,clock
+from cmath          import *
+from math           import atan2
+from jarray         import array,zeros
+from threading      import Thread
+from java.lang      import System
+from javax.imageio  import ImageIO
+from java.io        import File
+import random
+from javax.swing import *
+from java.awt import *
+from java.awt.geom import *
+from java.awt.event import *
+from javax.swing.event import *
+from java.lang import *
+
+M = 7
+R = 15
+SCREENSIZE = 800
+
+image = BufferedImage(SCREENSIZE,SCREENSIZE,BufferedImage.TYPE_INT_RGB)
+GQ = image.createGraphics()
+GQ.color = Color.WHITE
+#GQ.fillRect(0,0,SCREENSIZE,SCREENSIZE)
+
+class Lattice(JPanel):
+    def paint(self,g):
+        g.drawImage(image,0,0,SCREENSIZE,SCREENSIZE,None)        
+jf = JFrame("Loops")
+jp = JPanel(BorderLayout())
+l  = Lattice()
+jf.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
+jf.contentPane = jp
+jp.preferredSize = Dimension(SCREENSIZE,SCREENSIZE)
+jp.add(l,BorderLayout.CENTER);
+jf.pack();
+jf.show();
+
+colors = [(1,1,1),
+(1  ,0 , 0), (0 , 0, 0),
+(0  ,1 , 1), (0 ,.2,.5),
+(1  ,1 , 0), (0 , 1, 0),
+(1  ,0 , 1), (.4, 0, 1),
+(.8 ,.8,.8), (.2,.2,.2),
+(1  ,.5, 0), (.2,.2, 0),
+(0.5, 1, 0), (1.,.5,.5)]
+
+colors = [Color(r*.999,g*.999,b*.999) for (r,g,b) in colors]
+
+def angle(z):
+    return atan2(z.imag,z.real)
+
+
+def zline(G,a,b):
+    '''
+    Draw line between two points passed as complex
+    '''
+    G.draw(Line2D.Float(a.real,a.imag,b.real,b.imag))
+
+class edge:
+    def __init__(self,a,b,color=None):
+        self.setpoints(a,b)
+        self.color  = color
+    def moveto(self,a):
+        self.setpoints(a,self.b-self.a+a)
+    def setpoints(self,a,b,color=None):
+        self.a,self.b = a,b
+        self.delta  = a-b
+        self.len    = abs(self.delta)
+        self.angel  = self.delta/self.len
+        self.arrow1 = self.b+self.angel*exp( 1j*pi/4)*0.2*self.len
+        self.arrow2 = self.b+self.angel*exp(-1j*pi/4)*0.2*self.len
+        self.ortho  = self.angel*exp(-pi/2)
+        self.color  = color
+    def paint(self,G,offset=0):
+        '''
+        Offset displaces the edge slightly in the direction 
+        orthogonal to it. This lets us draw interior / exterior
+        polygons more exactly
+        '''
+        if self.color:
+            G.color = self.color
+        G.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                           RenderingHints.VALUE_ANTIALIAS_ON);
+        delta = offset*self.ortho
+        zline(G,self.a+delta,self.b+delta)
+        #zline(G,self.b+delta,self.arrow1+delta)
+        #zline(G,self.b+delta,self.arrow2+delta)
+    def translate(self,z):
+        self.a += z
+        self.b += z
+
+e1 = edge(30+40j,100+22j)
+e2 = edge(e1.a,e1.b)
+e2.moveto(e1.b)
+
+def tiletype(v):
+    span  = v.angle()
+    if span>pi:
+        span = 2*pi-span
+    if span>=pi/2:
+        span = pi-span
+    count = int(span/(pi/M)+0.5)
+    return count
+
+class vertex:
+    def __init__(self,a,b,c,color1=None,color2=None,color3=None):
+        self.e1 = edge(a,b,color1)
+        self.e2 = edge(b,c,color2)
+        self.fill = color3
+        if color3 is None:
+            # guess via quanta
+            count = tiletype(self)
+            self.fill = colors[count%len(colors)]
+            #print('angle is','%d'%(span*180/pi),'setting to color',count,self.fill)
+    def paint(self,G):
+        if self.fill:
+            a,b = self.e1.a,self.e1.b
+            b,c = self.e2.a,self.e2.b
+            d = a + c - b
+            pts = [a,b,c,d]
+            G.color = self.fill
+            G.fillPolygon([int(.5+z.real) for z in pts],[int(.5+z.imag) for z in pts],4)
+        self.e1.paint(G,offset=0)
+        self.e2.paint(G,offset=0)
+    def translate(self,z):
+        self.e1.translate(z)
+        self.e2.translate(z)
+    def angle(self):
+        p0 = self.e1.a
+        p1 = self.e1.b
+        p2 = self.e2.b
+        return (angle(p2-p1)-angle(p0-p1) + 4*pi)%(2*pi)
+
+
+c = (1+1j)*(SCREENSIZE/2)
+perim = [vertex(c,c+R*exp(1j*2*pi*i/M),c) for i in range(M)]
+
+for i in range(17):
+
+    for v in perim:
+        v.paint(GQ)
+        l.repaint()
+
+    newp = []
+    NP = len(perim)
+    added = False
+    for i in range(NP):
+        v1 = perim[(i+0)%NP]
+        v2 = perim[(i+1)%NP]
+        pA = v1.e1.a
+        p0 = v1.e1.b
+        p1 = v1.e2.b
+        p2 = v2.e1.b
+        pZ = v2.e2.b
+        pn = p0+(p2-p1)
+
+        vn = vertex(p0,pn,p2,colors[1],colors[2])
+        h2 = v1.angle()
+        h1 = vn.angle()
+        h0 = v2.angle()
+
+        span = 2*pi - vertex(p0,p1,p2).angle()
+        count = int(span/(2*pi/M))
+        print(count)
+
+        #print(h1)
+        if (h1<=0.0 or h1>pi): 
+            #print(h1-h2,h1-h0,h0,h1,h2)
+            if abs(h1-h2)<1e-4 or abs(h1-h0)<1e-4:
+                # Don't place similar tiles next to each-other
+                # (exclude trival solutions)
+                # Use two tiles when this happens
+                span = tiletype(vn)
+                if span==1:
+                    l1 = p0-p1
+                    l2 = p2-p1
+                    trisection = (angle(l1)-angle(l2))/3
+                    q1 = l1*exp(-1j*trisection)
+                    q2 = l2*exp( 1j*trisection)
+                    w1 = p0+q1
+                    w2 = p1+q1
+                    newp.append(vertex(p0,w1,w2,colors[3],colors[4]))
+                    w3 = w2+q2
+                    w4 = p1+q2
+                    newp.append(vertex(w2,w3,w4,colors[3],colors[4]))
+                    w5 = p2+q2
+                    newp.append(vertex(w4,w5,p2,colors[3],colors[4]))
+                else:
+                    avg = (p2-p1)+(p0-p1)
+                    a  = avg/abs(avg)*R
+                    pa = p0+a
+                    pb = p1+a
+                    pc = p2+a
+                    v1 = vertex(p0,pa,pb,colors[3],colors[4])
+                    v2 = vertex(pb,pc,p2,colors[5],colors[6])
+                    newp.append(v1)
+                    newp.append(v2)
+                    edge(p1,pb).paint(GQ)
+                added=True
+            else:
+                print('h1=',h1)
+                if abs(abs(h1-pi)-pi)>1e-2:
+                    newp.append(vn)
+                    added=True
+        else:
+            # Keep original vertex if already convex
+            # Skip vertex if angle is zero
+            # Do not draw this vertex as a polygon (it spans two tiles)
+            print('h1=',h1)
+            if abs(abs(h1-pi)-pi)>1e-2:
+                newp.append(vertex(p0,p1,p2,colors[7],colors[8],Color(0,0,0,0)))
+
+
+    if not added:
+        newp = []
+        for i in range(NP):
+            v1 = perim[(i+0)%NP]
+            v2 = perim[(i+1)%NP]
+            p0 = v1.e1.b
+            p1 = v1.e2.b
+            p2 = v2.e1.b
+            pn = p0+(p2-p1)
+
+            span = 2*pi - vertex(p0,p1,p2).angle()
+            count = int(span/(2*pi/M)+0.5)
+            print(count,span/(pi/M))
+
+            avg = (p2-p1)+(p0-p1)
+            a = -avg/abs(avg)*R
+            pa = p0+a
+            pb = p1+a
+            pc = p2+a
+            v1 = vertex(p0,pa,pb,colors[9],colors[10])
+            v2 = vertex(pb,pc,p2,colors[11],colors[12])
+            newp.append(v1)
+            newp.append(v2)
+            edge(p1,pb).paint(GQ)
+
+    perim = newp
+
+
+for v in perim:
+    v.paint(GQ)
+    l.repaint()
+
+
+print("done")

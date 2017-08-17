@@ -31,7 +31,7 @@ public class Halo {
         G.setColor(foreground);
         G.draw(new Ellipse2D.Float(x-pointradius,y-pointradius,pointradius*2,pointradius*2));
         for (int i=1; i<=nrings; i++) {
-            G.draw(new Ellipse2D.Float(this.x-i*ringwidth,this.y-i*ringwidth,2*i*ringwidth,2*i*ringwidth));
+            //G.draw(new Ellipse2D.Float(this.x-i*ringwidth,this.y-i*ringwidth,2*i*ringwidth,2*i*ringwidth));
         }
         for (int i=0; i<nrays; i++) {
             float h = (float)((i*2*Math.PI)/nrays)+theta;
@@ -41,7 +41,7 @@ public class Halo {
             for (int j=1; j<=nrings; j++) {
                 float px = x + ct*j*ringwidth;
                 float py = y + st*j*ringwidth;
-                G.draw(new Ellipse2D.Float(px-pointradius,py-pointradius,pointradius*2,pointradius*2));
+                //G.draw(new Ellipse2D.Float(px-pointradius,py-pointradius,pointradius*2,pointradius*2));
             }
         }
     }

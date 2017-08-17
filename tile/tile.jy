@@ -1,8 +1,8 @@
 #!/usr/bin/env jython
-# Experimental drawing utility for compass designs
+# Experimental drawing utility for editing tilings
 
 from java.awt       import Color,BorderLayout,FlowLayout,Cursor,GridBagConstraints,GridBagLayout,Toolkit,Point,Robot
-from java.awt.event import MouseAdapter, MouseListener, MouseMotionListener, ComponentAdapter
+from java.awt.event import *
 from java.awt.image import BufferedImage
 from java.awt.Color import BLACK,WHITE,YELLOW,RED
 from java.awt.geom  import Line2D,Ellipse2D
@@ -24,10 +24,10 @@ from javax.swing.event import *
 
 from java.lang import *
 
-import Halo
+import Tile
 
 NRINGS = 3
-NRAYS = 5
+NRAYS  = 5
 RADIUS = 50
 
 drawingHalo = False
@@ -136,7 +136,7 @@ class mouse(MouseAdapter):
 l.addMouseListener(mouse());
 l.addMouseMotionListener(mouse());
 
-for i in range(1):
+for i in range(3):
     halos = cleanHalos()
     points = allPoints()
     newhalos = []#list(halos)
