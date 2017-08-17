@@ -19,4 +19,5 @@ git rm -rf --cached *.pyc
 git add . 
 git add -u :/
 git commit -m "$1"
+git pull
 git push origin master
