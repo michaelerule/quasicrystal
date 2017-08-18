@@ -26,7 +26,7 @@ from javax.swing.event import *
 from java.lang import *
 
 M = 7
-R = 15
+R = 20
 SCREENSIZE = 800
 
 units = [R*exp(1j*pi*i/M) for i in range(2*M)]
@@ -108,7 +108,7 @@ e2.moveto(e1.b)
 
 def edgeangle(e):
     vec = e.b-e.a
-    ang = angle(vec)
+    ang = (angle(vec)+4*pi)%(2*pi)
     return int(ang/(pi/M)+0.5)
 
 def tiletype(v):
@@ -140,14 +140,15 @@ class vertex:
             count = tiletype(self)
             self.fill = colors[count%len(colors)]
             #print('angle is','%d'%(span*180/pi),'setting to color',count,self.fill)
-    def paint(self,G):
+    def paint(self,G,transparent=False):
         if self.fill:
             a,b = self.e1.a,self.e1.b
             b,c = self.e2.a,self.e2.b
             d   = a+c-b
             pts = [a,b,c,d]
-            G.color = self.fill
-            G.fillPolygon([int(.5+z.real) for z in pts],[int(.5+z.imag) for z in pts],4)
+            if not transparent:
+                G.color = self.fill
+                G.fillPolygon([int(.5+z.real) for z in pts],[int(.5+z.imag) for z in pts],4)
         self.e1.paint(G,offset=0)
         self.e2.paint(G,offset=0)
     def translate(self,z):
@@ -160,17 +161,13 @@ class vertex:
         return (angle(p2-p1)-angle(p0-p1) + 4*pi)%(2*pi)
 
 c = (1+1j)*(SCREENSIZE/2)
-perim = [vertex(c,c+R*exp(1j*pi*i/M),c) for i in range(M*2)]
+#perim = [vertex(c,c+R*exp(1j*pi*i/M),c) for i in range(M*2)]
+perim = [vertex(c,c+R*exp(2*1j*pi*i/M),c) for i in range(M)]
 
-for i in range(8):
-
-    for v in perim:
-        v.paint(GQ)
-        l.repaint()
-
+def expand(perim,convexity=0):
     newp = []
     NP = len(perim)
-    added = False
+    valid = False
     for i in range(NP):
         v1 = perim[(i+0)%NP]
         v2 = perim[(i+1)%NP]
@@ -179,68 +176,123 @@ for i in range(8):
         p1 = v1.e2.b
         p2 = v2.e1.b
         pZ = v2.e2.b
-        pn = p0+(p2-p1)
+        ui0=edgeangle(v1.e1)
+        ui1=edgeangle(v1.e2)
+        ui2=edgeangle(v2.e1)
+        ui3=edgeangle(v2.e2)
+        u0=units[ui0%(M*2)]
+        u1=units[ui1%(M*2)]
+        u2=units[ui2%(M*2)]
+        u3=units[ui3%(M*2)]
+        #print '0th edge unit is',ui0,u0
+        #print '1th edge unit is',ui1,u1
+        #print '2th edge unit is',ui2,u2
+        #print '3th edge unit is',ui3,u3
+        pn = p0+u2
         vn = vertex(p0,pn,p2,colors[1],colors[2])
-        h2 = v1.angle()
-        h1 = vn.angle()
-        h0 = v2.angle()
+        # count number of angles spanned by missing tile(s)
         vint = vertexint(vn)
         tid  = tiletype(vn)
         span = vertexspan(vn)
-        
-        print 'first edge unit is',edgeangle(v1.e1)
-        
-        print 'vertex span is',span,'; sector count is',vint,'; tile type is',tid
-        if vint<M:
-    	    print '>concave<'
-            if vint>0:
+        t1id = vertexspan(v1)
+        t2id = vertexspan(v2)
+        #print 'vertex span is',span,'; sector count is',vint,'; tile type is',tid
+        if vint<M and not (span==t1id or span==t2id):
+    	    #print '>concave, use one tile<'
+    	    if vint>0:
                 newp.append(vn)
-                added=True
-        elseif vint>0 and vint<M*2:
-    	    print '>convex<'
-            # Keep original vertex if already convex
-            # newp.append(vertex(p0,p1,p2,colors[7],colors[8],Color(0,0,0,0)))
-            
-            # Alternate: fill with multiple polygons
-            subspan = vint//2
-            assert subspan>0 and subspan<M
-            
-            
+                valid=True
+            else:
+                # This tile has zero area
+                # We need to repair the boundary using a virtual tile
+                # Keep original vertex if already convex
+                # This is a virtual tile however, it doesn't count
+                newp.append(vertex(pA,0.5*(p0+p2),pZ,colors[7],colors[8],Color(0,1,1,1)))
+        elif vint<M:
+            # concave, but nees a multiple-polygon fill
+            # only do these if all else has failed
+            if convexity>0:
+                # Should only do convex fills if no concave regions available
+                #print '>convex, use multiple tiles<'
+                subspan = vint//2
+                assert subspan>0 and subspan<M
+                #print 'filling span',vint,'using tiles width',subspan
+                uA = units[(ui2-subspan+M*2)%(M*2)]
+                uB = units[(ui1+subspan+M*2)%(M*2)]
+                newp.append(vertex(p0,p0-uB,p1-uB,colors[1],colors[2]))
+                if vint%2!=0:
+                    newp.append(vertex(p1-uB,p1+uA-uB,p1+uA,colors[1],colors[2]))
+                newp.append(vertex(p1+uA,p2+uA,p2,colors[1],colors[2])) 
+                valid=True
+                
+        elif vint>0 and vint<M*2:
+            # True convex shape
+            if convexity<2:
+                # Keep original vertex if already convex
+                # This is a virtual tile however, it doesn't count
+                newp.append(vertex(p0,p1,p2,colors[7],colors[8],Color(0,1,1,1)))
+            else:
+                # Should only do convex fills if no concave regions available
+                #print '>convex, use multiple tiles<'
+                subspan = vint//2
+                assert subspan>0 and subspan<M
+                #print 'filling span',vint,'using tiles width',subspan
+                uA = units[(ui2-subspan+M*2)%(M*2)]
+                uB = units[(ui1+subspan+M*2)%(M*2)]
+                newp.append(vertex(p0,p0-uB,p1-uB,colors[1],colors[2]))
+                if vint%2!=0:
+                    newp.append(vertex(p1-uB,p1+uA-uB,p1+uA,colors[1],colors[2]))
+                newp.append(vertex(p1+uA,p2+uA,p2,colors[1],colors[2])) 
+                valid=True
+    # Remove zero area pieces?
+    #cleanp = [v for v in newp if tiletype(vn)>0]
+    cleanp = newp
+    return cleanp,valid
 
 
-    if not added:
-        # Need to handle adding edges if the perimeter is convex
-        # Perhaps this can be addressed by adding two tiles to fill the gap
-        newp = []
-        for i in range(NP):
-            '''
-            v1 = perim[(i+0)%NP]
-            v2 = perim[(i+1)%NP]
-            p0 = v1.e1.b
-            p1 = v1.e2.b
-            p2 = v2.e1.b
-            pn = p0+(p2-p1)
-            span = 2*pi - vertex(p0,p1,p2).angle()
-            count = int(span/(2*pi/M)+0.5)
-            print(count,span/(pi/M))
-            avg = (p2-p1)+(p0-p1)
-            a = -avg/abs(avg)*R
-            pa = p0+a
-            pb = p1+a
-            pc = p2+a
-            v1 = vertex(p0,pa,pb,colors[9],colors[10])
-            v2 = vertex(pb,pc,p2,colors[11],colors[12])
-            newp.append(v1)
-            newp.append(v2)
-            edge(p1,pb).paint(GQ)
-            '''
-
-    perim = newp
-
+convexity = 0
+def growperim():
+    global perim, convexity
+    print "Searching convexity",convexity,'...'
+    newp,valid = expand(perim,convexity=convexity)
+    if not valid:
+        convexity += 1
+        print "No concave cells, increasing convexity to %d and retrying"%convexity
+        if convexity>4:
+            print "EXPANSION FAILED PERMANENTLY
+    else:
+        convexity = 0
+        assert len(newp)>0
+    if len(newp)>0 and valid:
+        perim = newp
+    for v in perim:
+        v.paint(GQ)
+    GQ.color = Color(1,1,1,0.0)
+    GQ.fillRect(0,0,SCREENSIZE,SCREENSIZE)
+    for v in perim:
+        v.paint(GQ,transparent=True)
+    l.repaint()
+    for i,vn in enumerate(perim):
+        vint = vertexint(vn)
+        tid  = tiletype(vn)
+        span = vertexspan(vn)
+        print 'vertex %02d span is'%i,span,'; sector count is',vint,'; tile type is',tid
+        # print bridge info too for debugging
+        v2 = perim[(i+1)%len(perim)]
+        vn = vertex(vn.e2.a,vn.e2.b,v2.e1.b,colors[1],colors[2])
+        vint = vertexint(vn)
+        tid  = tiletype(vn)
+        span = vertexspan(vn)
+        print 'bridge    span is',span,'; sector count is',vint,'; tile type is',tid
+        
+        
+jp.mouseClicked = lambda e: growperim()
 
 for v in perim:
     v.paint(GQ)
     l.repaint()
 
+#for ii in range(50):
+#    growperim()
 
 print("done")
