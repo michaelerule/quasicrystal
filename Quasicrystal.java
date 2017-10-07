@@ -16,9 +16,9 @@ import java.awt.event.*;
 public class Quasicrystal 
 {    
     static boolean show = true;  // whether to display image in a window  
-    static int k = 5;            // numer of plane waves    
-    static int stripes = 30;     // number of stripes per wave    
-    static int K = 600;          // image size in pixels
+    static int k = 8;            // numer of plane waves    
+    static int stripes = 100;     // number of stripes per wave    
+    static int K = 800;          // image size in pixels
     static int downsample = 2;   // Oversampling factor
     static int N = K*downsample; 
     static double phase = 0.0;   // phase shift for the crystal  

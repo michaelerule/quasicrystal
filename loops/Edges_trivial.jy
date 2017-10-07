@@ -138,7 +138,7 @@ class vertex:
 c = (1+1j)*(SCREENSIZE/2)
 perim = [vertex(c,c+R*exp(1j*2*pi*i/M),c) for i in range(M)]
 
-for i in range(17):
+for i in range(200):
 
     for v in perim:
         v.paint(GQ)

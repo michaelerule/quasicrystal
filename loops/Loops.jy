@@ -22,22 +22,23 @@ from java.awt.geom import *
 from java.awt.event import *
 from javax.swing.event import *
 
+from java.awt.event.KeyEvent import *
 from java.lang import *
 
 import Halo
 
-NRINGS = 1
-NRAYS = 4
-RADIUS = 50
-ALPHA = 0.7
+NRINGS = 3
+NRAYS = 12*2
+RADIUS = 800
+ALPHA = 0.4
 
 drawingHalo = False
 newhalo = None
 
 SCREENSIZE = 1000
 
-halo1   = Halo(RADIUS,NRINGS,NRAYS,0,SCREENSIZE/2,SCREENSIZE/2);
-halo2   = Halo(RADIUS,NRINGS,NRAYS,Math.PI/NRAYS,SCREENSIZE/2,SCREENSIZE/2);
+halo1   = Halo(RADIUS,NRINGS,NRAYS,0,SCREENSIZE/6,SCREENSIZE/6,None);
+halo2   = Halo(RADIUS,NRINGS,NRAYS,Math.PI/NRAYS,SCREENSIZE/2,SCREENSIZE/2,None);
 halos  = [halo1]#,halo2]
 
 def pointMap():
@@ -45,7 +46,8 @@ def pointMap():
     for h in halos:
         for p in h.points():
             if p is None: continue
-            (x,y) = (int(p.x+0.5),int(p.y+0.5))
+            (x,y) = (p.x,p.y)
+            #(x,y) = (int(p.x+0.5),int(p.y+0.5))
             if not (x,y) in result:
                 result[x,y] = [h]
             else:
@@ -53,13 +55,33 @@ def pointMap():
     return result
     
 def allPoints():
-    return set(list([(int(p.x+0.5),int(p.y+0.5)) for h in halos for p in h.points() if not p is None]))
+    # Was originally a list comprehension but I think theres a bug with jython
+    global halos
+    points = []
+    for h in halos:
+        print(h)
+        pp = h.points();
+        print pp
+        for p in pp:
+            if p is None: continue
+            #points += [(int(p.x+0.5),int(p.y+0.5))]
+            points += [(p.x,p.y)]
+    return list(set(points))
 
-def cleanHalos():
-    unique = set([(h.x,h.y,h.theta) for h in halos])
-    clean  = [Halo(RADIUS,NRINGS,NRAYS,h,x,y) for (x,y,h) in unique]
+def cleanHalos(toDelete=None):
+    clean = []
+    seen = set()
+    if not toDelete is None:
+        for h in toDelete:
+            signature = (h.x,h.y,h.theta)
+            seen.add(signature)
+    for h in halos:
+        signature = (h.x,h.y,h.theta)
+        if signature in seen: 
+            continue
+        seen.add(signature)
+        clean.append(h)
     return clean
-    
 
 def updateHalos():
     global halos, points, pointmap
@@ -115,26 +137,44 @@ jf.show();
 class mouse(MouseAdapter):
     def mouseMoved(self,e):
         global nearby
-        dd = 200
+        dd    = 50
         found = None
         for (x,y) in points:
             dx = x-e.x
             dy = y-e.y
-            d = dx*dx+dy*dy;
+            d  = dx*dx+dy*dy;
             if d<dd:
                 found = (x,y)
         nearby=found
         l.repaint()
     def mouseDragged(self,e):
-        global nearby, points, halos, drawingHalo, newhalo
+        global nearby, points, halos, drawingHalo, newhalo, RADIUS
         if not drawingHalo: return
         x,y = newhalo.x,newhalo.y
-        dx = e.x-x;
-        dy = e.y-y;
+        # new trick: change the center as well (x,y are public)
+        # we have the angle, we need to offset from the parent halo
+        # by one unit radius in that direction.
+        # we need to keep track of parent halo center to do this
+        px = newhalo.parent_x
+        py = newhalo.parent_y
+
+        dx = e.x-px;
+        dy = e.y-py;
         h = Math.atan2(dy,dx);
-        h = Math.round(h*NRAYS/Math.PI)*(Math.PI/NRAYS)
+        #h = Math.round(h*NRAYS/(2*Math.PI))*(2*Math.PI/NRAYS)
+        h = Math.round(h*NRAYS/(Math.PI))*(Math.PI/NRAYS)
         r = Math.hypot(dx,dy);
-        newhalo.theta = h;
+        newhalo.theta = (h+pi);
+        
+        # construct new central point
+        r = newhalo.ringwidth;
+        
+        dx = r*Math.cos(h) + px;
+        dy = r*Math.sin(h) + py;
+        
+        newhalo.x = dx;
+        newhalo.y = dy;
+        
         l.repaint()
         print(e,h)
     def mouseReleased(self,e):
@@ -148,21 +188,46 @@ class mouse(MouseAdapter):
         global nearby, points, halos, drawingHalo, newhalo
         if nearby:
             x,y = nearby
-            newhalo = Halo(RADIUS,NRINGS,NRAYS,0,x,y);
+            newhalo = Halo(RADIUS,NRINGS,NRAYS,0,x,y,None);
             newhalo.foreground = Color(0,255,255);
+            newhalo.parent_x = x;
+            newhalo.parent_y = y;
             l.repaint()
             drawingHalo = True
     def mouseClicked(self,e):
         global nearby, points, halos, drawingHalo, newhalo
         if nearby:
             x,y = nearby
-            newhalo = Halo(RADIUS,NRINGS,NRAYS,0,x,y);
+            newhalo = Halo(RADIUS,NRINGS,NRAYS,0,x,y,None);
+            newhalo.parent_x = x;
+            newhalo.parent_y = y;
             addHalo(newhalo)
         newhalo = None
         drawingHalo = False
         
 l.addMouseListener(mouse())
 l.addMouseMotionListener(mouse())
+
+class key(KeyAdapter):
+    def keyTyped(self,e):
+        global nearby, pointmap
+        print e
+    def keyPressed(self,e):
+        print e
+    def keyReleased(self,e):
+        global nearby, pointmap, halos
+        print e
+        if e.keyCode in (VK_BACK_SPACE,VK_DELETE,VK_D) and nearby:
+            updateHalos()
+            if not pointmap is None and nearby in pointmap:
+                print 'Deleteing...', pointmap[nearby]
+                halos = cleanHalos(pointmap[nearby])
+                updateHalos()
+                nearby = None
+
+l.addKeyListener(key())
+jp.addKeyListener(key())
+jf.addKeyListener(key())
 
 # Note: do not run this more than once!
 '''

@@ -146,12 +146,13 @@ class mouse(MouseAdapter):
         newhalo = None
         drawingHalo = False
         
-l.addMouseListener(mouse());
-l.addMouseMotionListener(mouse());
+mm = mouse();
+l.addMouseListener(mm);
+l.addMouseMotionListener(mm);
 
 for i in range(0):
-    halos = cleanHalos()
-    points = allPoints()
+    halos    = cleanHalos()
+    points   = allPoints()
     newhalos = list(halos)
     for x,y in points:
         newhalos += [Halo(RADIUS,NRINGS,NRAYS,0,x,y)]
@@ -159,4 +160,10 @@ for i in range(0):
     halos = newhalos
     halos = cleanHalos()
     l.repaint()
+
+
+
+
+
+
 
