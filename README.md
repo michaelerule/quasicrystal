@@ -5,6 +5,7 @@ Code and outputs for rendering quasicrystal patterns.
 
 [![DOI](https://zenodo.org/badge/96306181.svg)](https://zenodo.org/badge/latestdoi/96306181)
 
+- [Rendering quasicrystals using Preparata and Muller](https://crawlingrobotfortress.blogspot.com/2020/09/algorithms-for-rendering-quasicrystal.html)
 - [A series of quasicrystal blog posts](http://wealoneonearth.blogspot.co.uk/search/label/quasicrystal). 
 - [Keegan's blog post](http://mainisusuallyafunction.blogspot.co.uk/2011/10/quasicrystals-as-sums-of-waves-in-plane.html)
 - [Some hand-colored mandalas in various stages of completion](https://github.com/michaelerule/mandalas)
