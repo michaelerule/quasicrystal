@@ -18,6 +18,6 @@ cat .gitignore | awk "/^[.\*]/" | sed 's/"/"\\""/g;s/.*/"&"/' |  xargs -E '' -I{
 git rm -rf --cached *.pyc
 git add . 
 git add -u :/
-git commit -m "$1"
+git commit -m "${1:-...}"
 git pull
 git push origin master
